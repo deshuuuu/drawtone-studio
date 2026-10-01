@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DrawTone Studio</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>DrawTone Studio</h1>
+  <p class="sub">그림을 그리면 바로 연주되고, 완성한 그림은 왼쪽에서 오른쪽으로 스캔해 음악처럼 재생해.</p>
+  <div class="layout">
+    <aside class="panel side">
+      <section>
+        <h2>모드</h2>
+        <div class="row">
+          <button id="drawMode" class="active">그리기</button>
+          <button id="eraseMode">지우개</button>
+          <button id="selectMode">루프 영역</button>
+        </div>
+        <label><input id="liveToggle" type="checkbox" checked> 그리면서 연주</label>
+      </section>
+
+      <section>
+        <h2>브러시</h2>
+        <div class="row">
+          <button class="brush active" data-brush="pen">펜</button>
+          <button class="brush" data-brush="highlighter">형광펜</button>
+          <button class="brush" data-brush="spray">스프레이</button>
+        </div>
+        <label>크기 <input id="size" type="range" min="2" max="42" value="10"></label>
+        <label>투명도 <input id="alpha" type="range" min=".08" max="1" value=".9" step=".02"></label>
+      </section>
+
+      <section>
+        <h2>스케일 & 프리셋</h2>
+        <label>스케일
+          <select id="scale">
+            <option value="major">C Major</option>
+            <option value="minor">C Minor</option>
+            <option value="pentatonic" selected>Pentatonic</option>
+            <option value="japanese">Japanese</option>
+            <option value="dream">Dreamy</option>
+            <option value="dark">Dark</option>
+            <option value="chaos">Chaos</option>
+          </select>
+        </label>
+        <label>프리셋
+          <select id="preset">
+            <option value="custom">Custom</option>
+            <option value="dream">Dream</option>
+            <option value="night">Night</option>
+            <option value="musicbox">Music Box</option>
+            <option value="piano">Piano</option>
+          </select>
+        </label>
+        <label>BPM <input id="bpm" type="number" min="40" max="240" value="120"></label>
+      </section>
+
+      <section>
+        <h2>색상 = 악기</h2>
+        <div id="mapping"></div>
+        <p class="mini">색마다 다른 악기로 읽는다. 필요시 직접 바꿔 줘.</p>
+      </section>
+
+      <section>
+        <h2>재생</h2>
+        <div class="row">
+          <button id="play" class="primary">그림 재생</button>
+          <button id="loop">선택영역 반복</button>
+          <button id="stop">정지</button>
+        </div>
+        <label>전체 볼륨 <input id="volume" type="range" min="-36" max="0" value="-18" step="1"></label>
+        <div class="row">
+          <button id="undo">Undo</button>
+          <button id="redo">Redo</button>
+          <button id="clear" class="danger">전체 지우기</button>
+        </div>
+      </section>
+    </aside>
+
+    <main class="panel main">
+      <div id="palette" class="palette"></div>
+      <div class="stage">
+        <canvas id="drawCanvas" width="1280" height="720"></canvas>
+        <canvas id="overlayCanvas" width="1280" height="720"></canvas>
+      </div>
+      <div id="legend" class="legend"></div>
+      <div id="status" class="status">준비됨. 색을 고르고 그림을 그려봐.</div>
+    </main>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
