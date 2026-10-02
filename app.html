@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DrawTone Studio</title>
+  <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+  <style>
+    :root{
+      --bg:#f7f5fb;
+      --panel:#ffffff;
+      --line:#ddd8ea;
+      --text:#222;
+      --muted:#666;
+      --accent:#8f7cff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:linear-gradient(180deg,#faf8ff 0%, #f3f0fb 100%);
+      color:var(--text);
+    }
+    .wrap{
+      max-width:1280px;
+      margin:24px auto;
+      padding:0 16px 24px;
+    }
+    h1{
+      margin:0 0 8px;
+      font-size:30px;
+    }
+    .sub{
+      margin:0 0 18px;
+      color:var(--muted);
+      line-height:1.55;
+    }
+    .layout{
+      display:grid;
+      grid-template-columns: 320px minmax(0,1fr);
+      gap:16px;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid rgba(0,0,0,.06);
+      border-radius:18px;
+      box-shadow:0 10px 26px rgba(34,25,70,.06);
+    }
+    .side{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      align-self:start;
+      position:sticky;
+      top:16px;
+    }
+    .section{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+    }
+    .section h2{
+      margin:0 0 10px;
+      font-size:15px;
+    }
+    .row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:8px;
+      flex-wrap:wrap;
+    }
+    .row:last-child{margin-bottom:0}
+    label{
+      font-size:13px;
+      color:#444;
+    }
+    select, input[type="number"], input[type="range"], button{
+      font:inherit;
+    }
+    select, input[type="number"]{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+      background:#fff;
+    }
+    button{
+      border:none;
+      background:#f0ecff;
+      color:#3f2fa8;
+      border-radius:12px;
+      padding:9px 12px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button.primary{
+      background:var(--accent);
+      color:#fff;
+    }
+    button.ghost{
+      background:#f5f5f8;
+      color:#333;
+    }
+    button.warn{
+      background:#ffecec;
+      color:#a33;
+    }
+    button.active{
+      outline:2px solid var(--accent);
+      background:#f3efff;
+    }
+    .mini{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .color-list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .color-item{
+      display:grid;
+      grid-template-columns: 24px 1fr 112px;
+      gap:8px;
+      align-items:center;
+    }
+    .swatch{
+      width:24px;
+      height:24px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.12);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
+    }
+    .swatch.white{
+      border-color:#bbb;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.04);
+      background-image: linear-gradient(45deg,#ececf3 25%, transparent 25%, transparent 75%, #ececf3 75%, #ececf3),
+                        linear-gradient(45deg,#ececf3 25%, transparent 25%, transparent 75%, #ececf3 75%, #ececf3);
+      background-size:10px 10px;
+      background-position:0 0, 5px 5px;
+    }
+    .main{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    .toolbar-group{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fcfbff;
+    }
+    .stage{
+      position:relative;
+      width:100%;
+      aspect-ratio:16 / 9;
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(to right, rgba(120,120,150,.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(120,120,150,.08) 1px, transparent 1px),
+        #fbfbfe;
+      background-size:40px 40px, 40px 40px, auto;
+      touch-action:none;
+    }
+    canvas{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+    }
+    #overlayCanvas{
+      pointer-events:none;
+    }
+    .legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:999px;
+      padding:5px 10px;
+      font-size:12px;
+      color:#444;
+    }
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      border:1px solid rgba(0,0,0,.1);
+      display:inline-block;
+    }
+    .status{
+      padding:12px 14px;
+      border-radius:14px;
+      background:#f8f6ff;
+      border:1px solid #e3ddff;
+      color:#463b7a;
+      min-height:48px;
+      line-height:1.5;
+      font-size:14px;
+    }
+    .inline{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:8px;
+    }
+    @media (max-width: 960px){
+      .layout{grid-template-columns:1fr}
+      .side{position:static}
+      .color-item{grid-template-columns:24px 1fr}
+      .color-item select{grid-column:2}
+      .inline{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>DrawTone Studio</h1>
+    <p class="sub">
+      그림을 그리면 바로 연주되고, 완성한 그림은 왼쪽→오른쪽으로 스캔해서 음악처럼 재생하는 웹앱 프로토타입.
+      위쪽은 높은 음, 아래쪽은 낮은 음. 선이 길면 더 오래 유지되고, 점은 짧게 지나간다.
+    </p>
+
+    <div class="layout">
+      <aside class="panel side">
+        <div class="section">
+          <h2>모드</h2>
+          <div class="row">
+            <button id="drawModeBtn" class="active">그리기</button>
+            <button id="eraseModeBtn" class="ghost">지우개</button>
+            <button id="selectModeBtn" class="ghost">루프 영역 선택</button>
+          </div>
+          <div class="row">
+            <label><input type="checkbox" id="livePlayToggle" checked /> 그리면서 연주</label>
+          </div>
+          <div class="mini">루프 영역 선택 후 <b>선택영역 반복</b>을 누르면 그 구역만 반복 재생해.</div>
+        </div>
+
+        <div class="section">
+          <h2>브러시</h2>
+          <div class="row">
+            <button data-brush="pen" class="brushBtn active">펜</button>
+            <button data-brush="highlighter" class="brushBtn ghost">형광펜</button>
+            <button data-brush="spray" class="brushBtn ghost">스프레이</button>
+          </div>
+          <div class="row">
+            <label style="width:100%;">크기
+              <input id="brushSize" type="range" min="2" max="42" value="10" />
+            </label>
+          </div>
+          <div class="row">
+            <label style="width:100%;">투명도
+              <input id="brushAlpha" type="range" min="0.08" max="1" value="0.9" step="0.02" />
+            </label>
+          </div>
+          <div class="mini">굵기 = 더 큰 소리. 투명도 = 더 부드러운 소리.</div>
+        </div>
+
+        <div class="section">
+          <h2>스케일 & 프리셋</h2>
+          <div class="inline">
+            <div>
+              <label>스케일</label>
+              <select id="scaleSelect">
+                <option value="major">C Major</option>
+                <option value="minor">C Minor</option>
+                <option value="pentatonic" selected>Pentatonic</option>
+                <option value="japanese">Japanese</option>
+                <option value="dream">Dreamy</option>
+                <option value="dark">Dark</option>
+                <option value="chaos">Chaos (보정 약함)</option>
+              </select>
+            </div>
+            <div>
+              <label>프리셋</label>
+              <select id="presetSelect">
+                <option value="custom">Custom</option>
+                <option value="dream">Dream</option>
+                <option value="8bit">8-bit</option>
+                <option value="night">Night</option>
+                <option value="musicbox">Music Box</option>
+                <option value="piano">Piano</option>
+                <option value="chaos">Chaos</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <label style="width:100%;">BPM
+              <input id="bpmInput" type="number" min="40" max="240" value="120" />
+            </label>
+          </div>
+          <div class="mini">프리셋을 바꾸면 악기 배정과 스케일, 효과가 함께 바뀐다.</div>
+        </div>
+
+        <div class="section">
+          <h2>색상 = 악기</h2>
+          <div class="color-list" id="colorMapList"></div>
+          <div class="mini" style="margin-top:8px;">색마다 다른 악기로 읽는다. 필요시 직접 바꿔 줘.</div>
+        </div>
+
+        <div class="section">
+          <h2>재생</h2>
+          <div class="row">
+            <button id="playFullBtn" class="primary">그림 재생</button>
+            <button id="playLoopBtn">선택영역 반복</button>
+            <button id="stopBtn" class="ghost">정지</button>
+          </div>
+          <div class="row">
+            <label style="width:100%;">전체 볼륨
+              <input id="masterVolume" type="range" min="-36" max="0" value="-18" step="1" />
+            </label>
+          </div>
+          <div class="mini">기본값 -18 dB. 너무 크면 왼쪽으로 더 낮춰.</div>
+          <div class="row" style="margin-top:8px;">
+            <button id="undoBtn" class="ghost">Undo</button>
+            <button id="redoBtn" class="ghost">Redo</button>
+            <button id="clearBtn" class="warn">전체 지우기</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="panel main">
+        <div class="toolbar">
+          <div class="toolbar-group" id="paletteButtons"></div>
+        </div>
+
+        <div class="stage" id="stage">
+          <canvas id="drawCanvas" width="1280" height="720" style="pointer-events:auto; cursor:crosshair;"></canvas>
+          <canvas id="overlayCanvas" width="1280" height="720"></canvas>
+        </div>
+
+        <div class="legend" id="legend"></div>
+
+        <div class="status" id="statusBox">
+          준비됨. 색을 고르고 그림을 그려봐. 기본은 <b>그리면서 연주</b> 켜짐.
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const drawCanvas = document.getElementById("drawCanvas");
+    const overlayCanvas = document.getElementById("overlayCanvas");
+    const stage = document.getElementById("stage");
+    const ctx = drawCanvas.getContext("2d");
+    const octx = overlayCanvas.getContext("2d");
+
+    const brushSizeEl = document.getElementById("brushSize");
+    const brushAlphaEl = document.getElementById("brushAlpha");
+    const scaleSelect = document.getElementById("scaleSelect");
+    const presetSelect = document.getElementById("presetSelect");
+    const bpmInput = document.getElementById("bpmInput");
+    const masterVolumeEl = document.getElementById("masterVolume");
+    const livePlayToggle = document.getElementById("livePlayToggle");
+    const statusBox = document.getElementById("statusBox");
+
+    const drawModeBtn = document.getElementById("drawModeBtn");
+    const eraseModeBtn = document.getElementById("eraseModeBtn");
+    const selectModeBtn = document.getElementById("selectModeBtn");
+
+    const paletteButtons = document.getElementById("paletteButtons");
+    const colorMapList = document.getElementById("colorMapList");
+    const legend = document.getElementById("legend");
+
+    const playFullBtn = document.getElementById("playFullBtn");
+    const playLoopBtn = document.getElementById("playLoopBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const undoBtn = document.getElementById("undoBtn");
+    const redoBtn = document.getElementById("redoBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    const BRUSH_TYPES = ["pen","highlighter","spray"];
+
+    const PALETTE = [
+      { id:"red",    label:"빨강",   color:"#ff5c6c", defaultInstrument:"lead"  },
+      { id:"yellow", label:"노랑",   color:"#ffd25e", defaultInstrument:"bell"  },
+      { id:"blue",   label:"파랑",   color:"#64a7ff", defaultInstrument:"piano" },
+      { id:"purple", label:"보라",   color:"#b184ff", defaultInstrument:"pad"   },
+      { id:"green",  label:"초록",   color:"#59cc88", defaultInstrument:"bass"  },
+      { id:"white",  label:"흰색",   color:"#ffffff", defaultInstrument:"pluck" },
+      { id:"black",  label:"검정",   color:"#171717", defaultInstrument:"drum"  }
+    ];
+
+    const INSTRUMENT_OPTIONS = [
+      { value:"lead",  label:"신스/리드" },
+      { value:"bell",  label:"벨" },
+      { value:"piano", label:"피아노" },
+      { value:"pad",   label:"패드" },
+      { value:"bass",  label:"베이스" },
+      { value:"pluck", label:"플럭" },
+      { value:"drum",  label:"드럼/퍼커션" }
+    ];
+
+    const SCALES = {
+      major:      [0, 2, 4, 5, 7, 9, 11],
+      minor:      [0, 2, 3, 5, 7, 8, 10],
+      pentatonic: [0, 2, 4, 7, 9],
+      japanese:   [0, 1, 5, 7, 8],
+      dream:      [0, 2, 4, 7, 11],
+      dark:       [0, 1, 3, 5, 7, 8, 10],
+      chaos:      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    };
+
+    const PRESETS = {
+      custom: {
+        scale: "pentatonic",
+        effects: { reverb: 0.25, delay: 0.12, crusher: 0 },
+        mapping: Object.fromEntries(PALETTE.map(p => [p.id, p.defaultInstrument]))
+      },
+      dream: {
+        scale: "dream",
+        effects: { reverb: 0.38, delay: 0.12, crusher: 0 },
+        mapping: { red:"lead", yellow:"bell", blue:"pluck", purple:"pad", green:"bass", white:"bell", black:"drum" }
+      },
+      "8bit": {
+        scale: "major",
+        effects: { reverb: 0.08, delay: 0.02, crusher: 3 },
+        mapping: { red:"lead", yellow:"lead", blue:"piano", purple:"lead", green:"bass", white:"pluck", black:"drum" }
+      },
+      night: {
+        scale: "dark",
+        effects: { reverb: 0.30, delay: 0.14, crusher: 0 },
+        mapping: { red:"pad", yellow:"bell", blue:"piano", purple:"pad", green:"bass", white:"pluck", black:"drum" }
+      },
+      musicbox: {
+        scale: "major",
+        effects: { reverb: 0.20, delay: 0.10, crusher: 0 },
+        mapping: { red:"bell", yellow:"bell", blue:"pluck", purple:"bell", green:"bass", white:"bell", black:"drum" }
+      },
+      piano: {
+        scale: "minor",
+        effects: { reverb: 0.12, delay: 0.03, crusher: 0 },
+        mapping: { red:"piano", yellow:"piano", blue:"piano", purple:"pad", green:"bass", white:"pluck", black:"drum" }
+      },
+      chaos: {
+        scale: "chaos",
+        effects: { reverb: 0.30, delay: 0.18, crusher: 2 },
+        mapping: { red:"lead", yellow:"drum", blue:"piano", purple:"pad", green:"bass", white:"pluck", black:"drum" }
+      }
+    };
+
+    let mode = "draw";
+    let currentBrush = "pen";
+    let currentColorId = "red";
+    let drawing = false;
+    let selecting = false;
+    let lastPoint = null;
+    let loopRegion = null;
+    let selectionStart = null;
+
+    let undoStack = [];
+    let redoStack = [];
+    const maxHistory = 30;
+
+    let audioReady = false;
+    let audio = {};
+    let liveLastTime = 0;
+    let liveLastPoint = null;
+
+    let playTimer = null;
+    let playContext = null;
+    let currentStepX = 0;
+    let activePolyNotes = {};
+    let activeBass = null;
+
+    function setStatus(html){
+      statusBox.innerHTML = html;
+    }
+
+    function resizeCanvasesForCSS() {
+      // fixed internal resolution already set, just redraw overlay
+      renderOverlay();
+    }
+
+    function initCanvas(){
+      ctx.fillStyle = "#fbfbfe";
+      ctx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+      renderOverlay();
+      pushHistory();
+    }
+
+    function getCanvasPos(e){
+      const rect = drawCanvas.getBoundingClientRect();
+      const point = e.touches ? e.touches[0] : e;
+      return {
+        x: (point.clientX - rect.left) * (drawCanvas.width / rect.width),
+        y: (point.clientY - rect.top) * (drawCanvas.height / rect.height)
+      };
+    }
+
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+    function pushHistory(){
+      try{
+        const data = drawCanvas.toDataURL("image/png");
+        undoStack.push(data);
+        if(undoStack.length > maxHistory) undoStack.shift();
+        redoStack = [];
+      } catch(err){}
+    }
+
+    function restoreFromDataURL(dataURL){
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0,0,drawCanvas.width,drawCanvas.height);
+        ctx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+        renderOverlay();
+      };
+      img.src = dataURL;
+    }
+
+    function undo(){
+      if(undoStack.length <= 1) return;
+      const current = undoStack.pop();
+      redoStack.push(current);
+      const prev = undoStack[undoStack.length - 1];
+      restoreFromDataURL(prev);
+      setStatus("이전 상태로 되돌렸어.");
+    }
+
+    function redo(){
+      if(!redoStack.length) return;
+      const next = redoStack.pop();
+      undoStack.push(next);
+      restoreFromDataURL(next);
+      setStatus("다시 앞으로 진행했어.");
+    }
+
+    function clearCanvas(){
+      stopPlayback();
+      ctx.fillStyle = "#fbfbfe";
+      ctx.fillRect(0,0,drawCanvas.width,drawCanvas.height);
+      loopRegion = null;
+      pushHistory();
+      renderOverlay();
+      setStatus("캔버스를 모두 지웠어.");
+    }
+
+    function hexToRgb(hex){
+      const s = hex.replace("#", "");
+      return { r: parseInt(s.slice(0,2),16), g: parseInt(s.slice(2,4),16), b: parseInt(s.slice(4,6),16) };
+    }
+
+    function distance(a,b){
+      const dx = a.x - b.x, dy = a.y - b.y;
+      return Math.sqrt(dx*dx + dy*dy);
+    }
+
+    function getBrushColorAndAlpha(){
+      const alpha = Number(brushAlphaEl.value);
+      const paletteItem = PALETTE.find(p => p.id === currentColorId);
+      const base = hexToRgb(paletteItem.color);
+      return { base, alpha };
+    }
+
+    function drawDot(x,y,size,color,alpha){
+      ctx.save();
+      ctx.globalCompositeOperation = mode === "erase" ? "destination-out" : "source-over";
+      ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+      ctx.beginPath();
+      ctx.arc(x, y, size/2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawLine(from, to){
+      const { base, alpha } = getBrushColorAndAlpha();
+      const size = Number(brushSizeEl.value);
+      const type = currentBrush;
+
+      if(mode === "erase"){
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = size + 6;
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+        ctx.restore();
+        return;
+      }
+
+      if(type === "spray"){
+        const d = distance(from, to);
+        const steps = Math.max(6, Math.floor(d / 3));
+        for(let i=0;i<steps;i++){
+          const t = i / steps;
+          const x = from.x + (to.x - from.x) * t;
+          const y = from.y + (to.y - from.y) * t;
+          for(let s=0;s<Math.max(16, size*2);s++){
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * size * 0.8;
+            const px = x + Math.cos(angle) * radius;
+            const py = y + Math.sin(angle) * radius;
+            drawDot(px, py, Math.max(1, size * 0.18), base, alpha * 0.22);
+          }
+        }
+        return;
+      }
+
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = type === "highlighter" ? size * 1.5 : size;
+      ctx.strokeStyle = `rgba(${base.r},${base.g},${base.b},${type === "highlighter" ? alpha * 0.28 : alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function renderOverlay(scanX=null, scanW=0){
+      octx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+
+      if(loopRegion){
+        octx.save();
+        octx.fillStyle = "rgba(143,124,255,.10)";
+        octx.strokeStyle = "rgba(143,124,255,.9)";
+        octx.lineWidth = 2;
+        octx.setLineDash([8,6]);
+        octx.fillRect(loopRegion.x, loopRegion.y, loopRegion.w, loopRegion.h);
+        octx.strokeRect(loopRegion.x, loopRegion.y, loopRegion.w, loopRegion.h);
+        octx.setLineDash([]);
+        octx.fillStyle = "rgba(143,124,255,.95)";
+        octx.font = "bold 16px sans-serif";
+        octx.fillText("LOOP", loopRegion.x + 8, loopRegion.y + 22);
+        octx.restore();
+      }
+
+      if(selecting && selectionStart && tempSelection){
+        const r = tempSelection;
+        octx.save();
+        octx.fillStyle = "rgba(90,180,255,.10)";
+        octx.strokeStyle = "rgba(90,180,255,.95)";
+        octx.lineWidth = 2;
+        octx.setLineDash([8,6]);
+        octx.fillRect(r.x, r.y, r.w, r.h);
+        octx.strokeRect(r.x, r.y, r.w, r.h);
+        octx.restore();
+      }
+
+      if(scanX !== null){
+        octx.save();
+        octx.fillStyle = "rgba(122,200,255,.20)";
+        octx.fillRect(scanX, 0, scanW, overlayCanvas.height);
+        octx.strokeStyle = "rgba(0,154,255,.95)";
+        octx.lineWidth = 2;
+        octx.beginPath();
+        octx.moveTo(scanX + 1, 0);
+        octx.lineTo(scanX + 1, overlayCanvas.height);
+        octx.stroke();
+        octx.restore();
+      }
+    }
+
+    function setMode(next){
+      mode = next;
+      drawModeBtn.classList.toggle("active", next === "draw");
+      eraseModeBtn.classList.toggle("active", next === "erase");
+      selectModeBtn.classList.toggle("active", next === "select");
+      [drawModeBtn, eraseModeBtn, selectModeBtn].forEach(btn => {
+        if(!btn.classList.contains("active")) btn.classList.add("ghost");
+        else btn.classList.remove("ghost");
+      });
+
+      if(next === "draw") setStatus("그리기 모드. 자유롭게 그리면 돼.");
+      if(next === "erase") setStatus("지우개 모드. 선을 문질러 지워.");
+      if(next === "select") setStatus("루프 영역 선택 모드. 캔버스 위를 드래그해서 반복할 영역을 잡아.");
+    }
+
+    function yToMidi(y){
+      const scaleName = scaleSelect.value;
+      const scale = SCALES[scaleName];
+      const normalized = 1 - (y / drawCanvas.height);
+      const totalDegrees = scaleName === "chaos" ? 30 : 24;
+      const degree = clamp(Math.round(normalized * (totalDegrees - 1)), 0, totalDegrees - 1);
+      const octave = Math.floor(degree / scale.length);
+      const scaleIndex = degree % scale.length;
+      const root = 48; // C3
+      return root + octave * 12 + scale[scaleIndex];
+    }
+
+    function velocityFromBrush(alpha, size){
+      return clamp(0.12 + (alpha * 0.5) + (size / 42) * 0.45, 0.08, 0.98);
+    }
+
+    async function initAudio(){
+      if(audioReady) return;
+      await Tone.start();
+
+      const masterGain = new Tone.Volume(Number(masterVolumeEl.value || -18)).toDestination();
+      const masterCompressor = new Tone.Compressor({
+        threshold: -22,
+        ratio: 2.2,
+        attack: 0.02,
+        release: 0.22
+      }).connect(masterGain);
+      const masterFilter = new Tone.Filter({
+        frequency: 5200,
+        type: "lowpass",
+        rolloff: -12,
+        Q: 0.35
+      }).connect(masterCompressor);
+
+      const masterReverb = new Tone.Reverb({ decay: 5.2, wet: 0.30 }).connect(masterFilter);
+      const delay = new Tone.FeedbackDelay("8n", 0.16).connect(masterFilter);
+      delay.wet.value = 0.09;
+      const crusher = new Tone.BitCrusher(1).connect(masterFilter);
+      crusher.wet.value = 0;
+
+      function busChain(node, useDelay=true){
+        node.connect(masterFilter);
+        node.connect(masterReverb);
+        if(useDelay) node.connect(delay);
+        node.connect(crusher);
+        return node;
+      }
+
+      audio = {
+        fx: { masterGain, masterCompressor, masterFilter, masterReverb, delay, crusher },
+        lead: busChain(new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type:"triangle" },
+          envelope: { attack:0.035, decay:0.20, sustain:0.16, release:0.35 }
+        })),
+        bell: busChain(new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type:"sine" },
+          envelope: { attack:0.01, decay:0.28, sustain:0.03, release:0.75 }
+        })),
+        piano: busChain(new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type:"sine" },
+          envelope: { attack:0.012, decay:0.34, sustain:0.10, release:0.65 }
+        })),
+        pad: busChain(new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type:"sine" },
+          envelope: { attack:0.28, decay:0.22, sustain:0.42, release:1.8 }
+        })),
+        pluck: busChain(new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type:"sine" },
+          envelope: { attack:0.005, decay:0.12, sustain:0.02, release:0.22 }
+        })),
+        bass: busChain(new Tone.MonoSynth({
+          oscillator: { type:"triangle" },
+          filter: { Q:0.8, type:"lowpass", rolloff:-24, frequency:900 },
+          envelope: { attack:0.03, decay:0.24, sustain:0.30, release:0.38 },
+          filterEnvelope: { attack:0.03, decay:0.20, sustain:0.18, release:0.35, baseFrequency:90, octaves:1.7 }
+        }), false),
+        drum: new Tone.NoiseSynth({
+          noise: { type:"pink" },
+          envelope: { attack:0.002, decay:0.14, sustain:0 }
+        }).connect(masterFilter)
+      };
+
+      audioReady = true;
+      applyPresetEffects(presetSelect.value);
+    }
+
+    function getColorMapping(){
+      const result = {};
+      PALETTE.forEach(p => {
+        const select = document.getElementById(`map-${p.id}`);
+        result[p.id] = select.value;
+      });
+      return result;
+    }
+
+    function applyMapping(mapping){
+      PALETTE.forEach(p => {
+        const select = document.getElementById(`map-${p.id}`);
+        select.value = mapping[p.id] || p.defaultInstrument;
+      });
+      renderLegend();
+    }
+
+    function applyPresetEffects(name){
+      if(!audioReady) return;
+      const preset = PRESETS[name] || PRESETS.custom;
+      audio.fx.masterReverb.wet.value = preset.effects.reverb;
+      audio.fx.delay.wet.value = preset.effects.delay;
+      audio.fx.crusher.bits = Math.max(1, 8 - preset.effects.crusher);
+      audio.fx.crusher.wet.value = preset.effects.crusher ? 0.22 : 0;
+    }
+
+    function noteNameFromMidi(midi){
+      return Tone.Frequency(midi, "midi").toNote();
+    }
+
+    async function triggerLiveSound(point){
+      if(!livePlayToggle.checked) return;
+      await initAudio();
+
+      const now = performance.now();
+      if(now - liveLastTime < 45) return;
+      if(liveLastPoint && distance(point, liveLastPoint) < 4) return;
+
+      const size = Number(brushSizeEl.value);
+      const alpha = Number(brushAlphaEl.value);
+      const vel = velocityFromBrush(alpha, size);
+      const midi = yToMidi(point.y);
+      const note = noteNameFromMidi(midi);
+      const colorMap = getColorMapping();
+      const instrument = colorMap[currentColorId];
+
+      if(instrument === "drum"){
+        audio.drum.triggerAttackRelease("16n", undefined, vel);
+      } else if(instrument === "bass"){
+        audio.bass.triggerAttackRelease(noteNameFromMidi(midi - 12), "8n", undefined, vel);
+      } else {
+        const duration = currentBrush === "spray" ? "32n" : currentBrush === "highlighter" ? "8n" : "16n";
+        audio[instrument].triggerAttackRelease(note, duration, undefined, vel);
+      }
+
+      liveLastTime = now;
+      liveLastPoint = point;
+    }
+
+    function beginStroke(pos){
+      drawing = true;
+      lastPoint = pos;
+      if(mode !== "select") pushHistory();
+
+      if(mode === "draw"){
+        drawLine({x:pos.x-0.01,y:pos.y-0.01}, pos);
+        triggerLiveSound(pos);
+      } else if(mode === "erase"){
+        drawLine({x:pos.x-0.01,y:pos.y-0.01}, pos);
+      } else if(mode === "select"){
+        selecting = true;
+        selectionStart = pos;
+        tempSelection = { x:pos.x, y:pos.y, w:0, h:0 };
+        renderOverlay();
+      }
+    }
+
+    function moveStroke(pos){
+      if(mode === "select"){
+        if(!selecting || !selectionStart) return;
+        const x = Math.min(selectionStart.x, pos.x);
+        const y = Math.min(selectionStart.y, pos.y);
+        const w = Math.abs(selectionStart.x - pos.x);
+        const h = Math.abs(selectionStart.y - pos.y);
+        tempSelection = { x,y,w,h };
+        renderOverlay();
+        return;
+      }
+
+      if(!drawing || !lastPoint) return;
+      drawLine(lastPoint, pos);
+      if(mode === "draw") triggerLiveSound(pos);
+      lastPoint = pos;
+    }
+
+    function endStroke(pos){
+      if(mode === "select"){
+        if(selecting && tempSelection && tempSelection.w > 8 && tempSelection.h > 8){
+          loopRegion = {
+            x: clamp(tempSelection.x, 0, drawCanvas.width),
+            y: clamp(tempSelection.y, 0, drawCanvas.height),
+            w: clamp(tempSelection.w, 1, drawCanvas.width),
+            h: clamp(tempSelection.h, 1, drawCanvas.height)
+          };
+          setStatus("루프 영역을 지정했어. 이제 <b>선택영역 반복</b>을 누르면 이 구역만 계속 돌아가.");
+        }
+        selecting = false;
+        selectionStart = null;
+        tempSelection = null;
+        renderOverlay();
+        return;
+      }
+
+      drawing = false;
+      lastPoint = null;
+      liveLastPoint = null;
+      if(mode === "draw") setStatus("그림을 계속 그리거나, <b>그림 재생</b>으로 전체를 들어봐.");
+      if(mode === "erase") setStatus("지운 뒤 다시 그려도 돼.");
+    }
+
+    let tempSelection = null;
+
+    function buildPaletteUI(){
+      paletteButtons.innerHTML = "";
+      colorMapList.innerHTML = "";
+      legend.innerHTML = "";
+
+      PALETTE.forEach((p, idx) => {
+        const btn = document.createElement("button");
+        btn.className = idx === 0 ? "active" : "ghost";
+        btn.style.display = "inline-flex";
+        btn.style.alignItems = "center";
+        btn.style.gap = "8px";
+        btn.innerHTML = `<span class="dot" style="background:${p.color}; border:${p.id==='white' ? '1px solid #bbb' : '1px solid rgba(0,0,0,.1)'}"></span>${p.label}`;
+        btn.onclick = () => {
+          currentColorId = p.id;
+          [...paletteButtons.querySelectorAll("button")].forEach(b => { b.classList.remove("active"); b.classList.add("ghost"); });
+          btn.classList.add("active");
+          btn.classList.remove("ghost");
+          setStatus(`${p.label} 색으로 그리는 중. 현재 매핑 악기: <b>${instrumentLabel(getColorMapping()[p.id])}</b>`);
+        };
+        paletteButtons.appendChild(btn);
+
+        const item = document.createElement("div");
+        item.className = "color-item";
+        const swatchClass = p.id === "white" ? "swatch white" : "swatch";
+        item.innerHTML = `
+          <span class="${swatchClass}" style="${p.id === "white" ? "" : `background:${p.color}`}" title="${p.label}"></span>
+          <div>
+            <div style="font-size:13px; font-weight:600;">${p.label}</div>
+            <div class="mini">${p.color}</div>
+          </div>
+        `;
+        const select = document.createElement("select");
+        select.id = `map-${p.id}`;
+        INSTRUMENT_OPTIONS.forEach(opt => {
+          const option = document.createElement("option");
+          option.value = opt.value;
+          option.textContent = opt.label;
+          if(opt.value === p.defaultInstrument) option.selected = true;
+          select.appendChild(option);
+        });
+        select.onchange = () => {
+          presetSelect.value = "custom";
+          renderLegend();
+          setStatus(`${p.label} 색 악기를 <b>${instrumentLabel(select.value)}</b>로 변경했어.`);
+        };
+        item.appendChild(select);
+        colorMapList.appendChild(item);
+      });
+
+      renderLegend();
+    }
+
+    function instrumentLabel(value){
+      const found = INSTRUMENT_OPTIONS.find(x => x.value === value);
+      return found ? found.label : value;
+    }
+
+    function renderLegend(){
+      legend.innerHTML = "";
+      const mapping = getColorMapping();
+      PALETTE.forEach(p => {
+        const pill = document.createElement("div");
+        pill.className = "pill";
+        pill.innerHTML = `<span class="dot" style="background:${p.color}; border:${p.id==='white' ? '1px solid #bbb' : '1px solid rgba(0,0,0,.1)'}"></span>${p.label} → ${instrumentLabel(mapping[p.id])}`;
+        legend.appendChild(pill);
+      });
+    }
+
+    function setBrush(type){
+      currentBrush = type;
+      document.querySelectorAll(".brushBtn").forEach(btn => {
+        const on = btn.dataset.brush === type;
+        btn.classList.toggle("active", on);
+        btn.classList.toggle("ghost", !on);
+      });
+      setStatus(`${type === "pen" ? "펜" : type === "highlighter" ? "형광펜" : "스프레이"} 브러시 선택.`);
+    }
+
+    function collectNotesFromRegion(imageData, xStart, stepW, yStart, h){
+      const mappingByColor = Object.fromEntries(PALETTE.map(p => [p.id, getColorMapping()[p.id]]));
+      const result = {
+        poly: { lead:new Map(), bell:new Map(), piano:new Map(), pad:new Map(), pluck:new Map() },
+        bass: null,
+        drumStrength: 0
+      };
+
+      const w = drawCanvas.width;
+      const yEnd = yStart + h;
+
+      for(let x = xStart; x < Math.min(xStart + stepW, w); x += 2){
+        for(let y = yStart; y < yEnd; y += 4){
+          const idx = (y * w + x) * 4;
+          const r = imageData.data[idx];
+          const g = imageData.data[idx+1];
+          const b = imageData.data[idx+2];
+          const a = imageData.data[idx+3];
+          if(a < 8) continue;
+          const colorId = nearestPaletteId(r,g,b,a);
+          if(!colorId) continue;
+          const instrument = mappingByColor[colorId];
+
+          if(instrument === "drum"){
+            result.drumStrength += a / 255;
+            continue;
+          }
+
+          const midiBase = yToMidi(y);
+          const vel = clamp((a/255) * 0.75 + (Number(brushSizeEl.value)/42)*0.25, 0.06, 0.99);
+
+          if(instrument === "bass"){
+            const bassMidi = midiBase - 12;
+            if(!result.bass || bassMidi < result.bass.midi){
+              result.bass = { midi: bassMidi, vel };
+            }
+            continue;
+          }
+
+          const map = result.poly[instrument];
+          if(!map.has(midiBase) || map.get(midiBase) < vel){
+            map.set(midiBase, vel);
+          }
+        }
+      }
+
+      return result;
+    }
+
+    function nearestPaletteId(r,g,b,a){
+      // treat background as empty
+      if(a < 8) return null;
+
+      const bg = { r:251, g:251, b:254 };
+      const bgDist = Math.hypot(r-bg.r, g-bg.g, b-bg.b);
+      if(bgDist < 14 && a > 245) return null;
+
+      let bestId = null;
+      let bestDist = Infinity;
+      for(const p of PALETTE){
+        const rgb = hexToRgb(p.color);
+        const d = Math.hypot(r-rgb.r, g-rgb.g, b-rgb.b);
+        if(d < bestDist){
+          bestDist = d;
+          bestId = p.id;
+        }
+      }
+      return bestDist < 160 ? bestId : null;
+    }
+
+    function releaseAllHeldNotes(){
+      if(!audioReady) return;
+      ["lead","bell","piano","pad","pluck"].forEach(inst => {
+        if(audio[inst] && typeof audio[inst].releaseAll === "function") audio[inst].releaseAll();
+      });
+      if(audio.bass) audio.bass.triggerRelease();
+      activePolyNotes = { lead:new Set(), bell:new Set(), piano:new Set(), pad:new Set(), pluck:new Set() };
+      activeBass = null;
+    }
+
+    function stopPlayback(){
+      if(playTimer){
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      playContext = null;
+      currentStepX = 0;
+      releaseAllHeldNotes();
+      renderOverlay();
+      setStatus("재생을 멈췄어.");
+    }
+
+    async function playRegion(loop=false){
+      await initAudio();
+      stopPlayback();
+
+      const full = { x:0, y:0, w:drawCanvas.width, h:drawCanvas.height };
+      const region = loop ? (loopRegion || null) : full;
+      if(loop && !region){
+        setStatus("먼저 <b>루프 영역 선택</b>으로 반복할 구역을 잡아줘.");
+        return;
+      }
+
+      const imageData = ctx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+      const bpm = clamp(Number(bpmInput.value) || 120, 40, 240);
+      const stepMs = (60000 / bpm) / 4; // 16분음표
+      const stepW = 8;
+
+      playContext = { loop, imageData, region, stepMs, stepW };
+      currentStepX = region.x;
+      activePolyNotes = { lead:new Set(), bell:new Set(), piano:new Set(), pad:new Set(), pluck:new Set() };
+      activeBass = null;
+
+      setStatus(loop ? "선택한 영역을 반복 재생 중…" : "그림 전체를 스캔 재생 중…");
+
+      playTimer = setInterval(() => {
+        stepPlayback();
+      }, stepMs);
+    }
+
+    function stepPlayback(){
+      if(!playContext) return;
+      const { loop, imageData, region, stepMs, stepW } = playContext;
+      const notes = collectNotesFromRegion(imageData, currentStepX, stepW, region.y, region.h);
+
+      renderOverlay(currentStepX, stepW);
+
+      ["lead","bell","piano","pad","pluck"].forEach(inst => {
+        const currentSet = new Set([...notes.poly[inst].keys()].slice(0, 5));
+        currentSet.forEach(midi => {
+          if(!activePolyNotes[inst].has(midi)){
+            audio[inst].triggerAttack(noteNameFromMidi(midi), undefined, notes.poly[inst].get(midi));
+          }
+        });
+        activePolyNotes[inst].forEach(midi => {
+          if(!currentSet.has(midi)){
+            audio[inst].triggerRelease(noteNameFromMidi(midi));
+          }
+        });
+        activePolyNotes[inst] = currentSet;
+      });
+
+      if(notes.bass){
+        const bassNote = noteNameFromMidi(notes.bass.midi);
+        if(activeBass !== notes.bass.midi){
+          if(activeBass !== null) audio.bass.triggerRelease();
+          audio.bass.triggerAttack(bassNote, undefined, notes.bass.vel);
+          activeBass = notes.bass.midi;
+        }
+      } else if(activeBass !== null){
+        audio.bass.triggerRelease();
+        activeBass = null;
+      }
+
+      if(notes.drumStrength > 0.9){
+        audio.drum.triggerAttackRelease("32n", undefined, clamp(notes.drumStrength / 8, 0.15, 0.95));
+      }
+
+      currentStepX += stepW;
+      const regionEnd = region.x + region.w;
+
+      if(currentStepX >= regionEnd){
+        if(loop){
+          releaseAllHeldNotes();
+          currentStepX = region.x;
+        } else {
+          stopPlayback();
+          setStatus("전체 그림 재생이 끝났어.");
+        }
+      }
+    }
+
+    function applyPreset(name){
+      const preset = PRESETS[name];
+      if(!preset) return;
+      scaleSelect.value = preset.scale;
+      applyMapping(preset.mapping);
+      applyPresetEffects(name);
+      setStatus(`<b>${name}</b> 프리셋 적용 완료.`);
+    }
+
+    // Event wiring
+    drawModeBtn.addEventListener("click", () => setMode("draw"));
+    eraseModeBtn.addEventListener("click", () => setMode("erase"));
+    selectModeBtn.addEventListener("click", () => setMode("select"));
+
+    document.querySelectorAll(".brushBtn").forEach(btn => {
+      btn.addEventListener("click", () => setBrush(btn.dataset.brush));
+    });
+
+    presetSelect.addEventListener("change", () => applyPreset(presetSelect.value));
+    scaleSelect.addEventListener("change", () => {
+      presetSelect.value = "custom";
+      setStatus(`스케일을 <b>${scaleSelect.options[scaleSelect.selectedIndex].text}</b>로 변경했어.`);
+    });
+
+    playFullBtn.addEventListener("click", () => playRegion(false));
+    playLoopBtn.addEventListener("click", () => playRegion(true));
+    stopBtn.addEventListener("click", stopPlayback);
+    undoBtn.addEventListener("click", undo);
+    redoBtn.addEventListener("click", redo);
+    clearBtn.addEventListener("click", clearCanvas);
+
+    function pointerDown(e){
+      e.preventDefault();
+      const pos = getCanvasPos(e);
+      beginStroke(pos);
+    }
+    function pointerMove(e){
+      e.preventDefault();
+      const pos = getCanvasPos(e);
+      moveStroke(pos);
+    }
+    function pointerUp(e){
+      const pos = e ? getCanvasPos(e) : null;
+      endStroke(pos);
+    }
+
+    drawCanvas.addEventListener("mousedown", pointerDown);
+    drawCanvas.addEventListener("mousemove", pointerMove);
+    window.addEventListener("mouseup", pointerUp);
+
+    drawCanvas.addEventListener("touchstart", pointerDown, { passive:false });
+    drawCanvas.addEventListener("touchmove", pointerMove, { passive:false });
+    window.addEventListener("touchend", () => pointerUp(), { passive:false });
+
+    window.addEventListener("resize", resizeCanvasesForCSS);
+
+
+    masterVolumeEl.addEventListener("input", () => {
+      if(audioReady && audio.fx && audio.fx.masterGain){
+        audio.fx.masterGain.volume.rampTo(Number(masterVolumeEl.value), 0.05);
+      }
+      setStatus(`전체 볼륨: <b>${masterVolumeEl.value} dB</b>`);
+    });
+
+    window.addEventListener("keydown", (e) => {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      if(typing) return;
+
+      if((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z"){
+        e.preventDefault();
+        undo();
+        return;
+      }
+
+      if(
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z")
+      ){
+        e.preventDefault();
+        redo();
+      }
+    });
+
+    buildPaletteUI();
+    initCanvas();
+    setMode("draw");
+    setBrush("pen");
+    applyPreset("custom");
+  </script>
+</body>
+</html>
