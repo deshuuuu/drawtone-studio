@@ -17,7 +17,7 @@
       const w = frame.contentWindow;
       if (!w) return;
 
-      // 캔버스 음역을 편안한 범위로 제한: E2(40) ~ C5(60)
+      // 너무 높지도 낮지도 않게: C3(48) ~ E5(76)
       w.yToMidi = function(y){
         const scaleName = w.document.getElementById('scaleSelect').value;
         const scales = {
@@ -28,8 +28,8 @@
         const scale = scales[scaleName] || scales.pentatonic;
         const canvas = w.document.getElementById('drawCanvas');
         const normalized = Math.max(0, Math.min(1, 1 - (y / canvas.height)));
-        const minMidi = 40;
-        const maxMidi = 60;
+        const minMidi = 48;
+        const maxMidi = 76;
         const raw = minMidi + normalized * (maxMidi - minMidi);
         let best = minMidi;
         let bestDiff = Infinity;
@@ -43,14 +43,14 @@
         return Math.max(minMidi, Math.min(maxMidi, best));
       };
 
-      // 오디오 초기화 후 고역을 한 번 더 부드럽게 깎음
+      // 고음은 살리되 날카로운 성분만 완화
       const originalInitAudio = w.initAudio;
       if (typeof originalInitAudio === 'function') {
         w.initAudio = async function(){
           await originalInitAudio();
           try {
             if(w.audio && w.audio.fx && w.audio.fx.masterFilter){
-              w.audio.fx.masterFilter.frequency.rampTo(3800, 0.08);
+              w.audio.fx.masterFilter.frequency.rampTo(4500, 0.08);
               w.audio.fx.masterFilter.rolloff = -24;
             }
           } catch(e) {}
